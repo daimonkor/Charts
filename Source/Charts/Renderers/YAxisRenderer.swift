@@ -379,7 +379,7 @@ open class YAxisRenderer: NSObject, AxisRenderer
         // This is used to avoid repeated values when rounding values for display.
         if axis.granularityEnabled
         {
-            interval = Swift.max(interval, axis.granularity)
+            interval = axis.granularity
         }
 
         // Normalize interval
