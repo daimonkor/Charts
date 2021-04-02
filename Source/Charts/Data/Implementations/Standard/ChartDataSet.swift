@@ -40,7 +40,7 @@ open class ChartDataSet: ChartBaseDataSet
     {
         self.entries = entries ?? []
 
-        super.init(label: label)
+        super.init(label: label ?? "")
 
         self.calcMinMax()
     }
