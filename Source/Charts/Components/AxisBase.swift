@@ -39,6 +39,15 @@ open class AxisBase: ComponentBase
     @objc open var gridLineCap = CGLineCap.butt
     
     @objc open var drawGridLinesEnabled = true
+    
+    @objc open var majorGridColor = NSUIColor.gray.withAlphaComponent(0.9)
+    @objc open var majorGridLineWidth = CGFloat(0.5)
+    @objc open var majorGridLineDashPhase = CGFloat(0.0)
+    @objc open var majorGridLineDashLengths: [CGFloat]!
+    @objc open var majorGridLineCap = CGLineCap.butt
+    
+    @objc open var drawMajorGridLinesEnabled = false
+
     @objc open var drawAxisLineEnabled = true
     
     /// flag that indicates of the labels of this axis should be drawn or not
@@ -71,12 +80,18 @@ open class AxisBase: ComponentBase
     ///
     /// **default**: true
     @objc open var drawGridLinesBehindDataEnabled = true
+    
+    @objc open var drawMajorGridLinesBehindDataEnabled = true
 
     /// the flag can be used to turn off the antialias for grid lines
     @objc open var gridAntialiasEnabled = true
     
+    @objc open var majorGridAntialiasEnabled = true
+    
     /// the actual array of entries
     @objc open var entries = [Double]()
+    
+    @objc open var majorEntries = [Double]()
     
     /// axis label entries only used for centered labels
     @objc open var centeredEntries = [Double]()
@@ -127,6 +142,40 @@ open class AxisBase: ComponentBase
             return granularityEnabled
         }
     }
+    
+    @objc open var majorGranularityEnabled = false
+    
+    private var _majorGranularity = Double(1.0)
+    
+    /// The minimum interval between axis values.
+    /// This can be used to avoid label duplicating when zooming in.
+    ///
+    /// **default**: 1.0
+    @objc open var majorGranularity: Double
+    {
+        get
+        {
+            return _majorGranularity
+        }
+        set
+        {
+            _majorGranularity = newValue
+            
+            // set this to `true` if it was disabled, as it makes no sense to set this property with granularity disabled
+            majorGranularityEnabled = true
+        }
+    }
+    
+    /// The minimum interval between axis values.
+    @objc open var isMajorGranularityEnabled: Bool
+    {
+        get
+        {
+            return majorGranularityEnabled
+        }
+    }
+    
+
     
     /// if true, the set number of y-labels will be forced
     @objc open var forceLabelsEnabled = false
@@ -187,6 +236,8 @@ open class AxisBase: ComponentBase
     
     @objc open var isDrawGridLinesEnabled: Bool { return drawGridLinesEnabled }
     
+    @objc open var isDrawMajorGridLinesEnabled: Bool { return drawMajorGridLinesEnabled }
+    
     @objc open var isDrawAxisLineEnabled: Bool { return drawAxisLineEnabled }
     
     @objc open var isDrawLabelsEnabled: Bool { return drawLabelsEnabled }
@@ -200,6 +251,8 @@ open class AxisBase: ComponentBase
     ///
     /// **default**: true
     @objc open var isDrawGridLinesBehindDataEnabled: Bool { return drawGridLinesBehindDataEnabled }
+    
+    @objc open var isDrawMajorGridLinesBehindDataEnabled: Bool { return drawMajorGridLinesBehindDataEnabled }
     
     /// Extra spacing for `axisMinimum` to be added to automatically calculated `axisMinimum`
     @objc open var spaceMin: Double = 0.0

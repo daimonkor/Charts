@@ -206,7 +206,14 @@ open class BarLineChartViewBase: ChartViewBase, BarLineScatterCandleBubbleChartD
         xAxisRenderer.renderAxisLine(context: context)
         leftYAxisRenderer.renderAxisLine(context: context)
         rightYAxisRenderer.renderAxisLine(context: context)
-
+           
+        if xAxis.drawMajorGridLinesBehindDataEnabled
+        {
+            xAxisRenderer.renderMajorGridLines(context: context)
+            leftYAxisRenderer.renderMajorGridLines(context: context)
+            rightYAxisRenderer.renderMajorGridLines(context: context)
+        }
+        
         // The renderers are responsible for clipping, to account for line-width center etc.
         if xAxis.drawGridLinesBehindDataEnabled
         {
@@ -235,7 +242,14 @@ open class BarLineChartViewBase: ChartViewBase, BarLineScatterCandleBubbleChartD
         if clipDataToContentEnabled {
             context.clip(to: _viewPortHandler.contentRect)
         }
-        renderer.drawData(context: context)
+        renderer.drawData(context: context)        
+        
+        if !xAxis.drawMajorGridLinesBehindDataEnabled
+        {
+            xAxisRenderer.renderMajorGridLines(context: context)
+            leftYAxisRenderer.renderMajorGridLines(context: context)
+            rightYAxisRenderer.renderMajorGridLines(context: context)
+        }        
         
         // The renderers are responsible for clipping, to account for line-width center etc.
         if !xAxis.drawGridLinesBehindDataEnabled

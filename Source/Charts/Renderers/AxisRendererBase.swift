@@ -41,6 +41,11 @@ open class AxisRendererBase: Renderer
         fatalError("renderGridLines() cannot be called on AxisRendererBase")
     }
     
+    @objc open func renderMajorGridLines(context: CGContext)
+    {
+        fatalError("renderMajorGridLines() cannot be called on AxisRendererBase")
+    }
+    
     /// Draws the line that goes alongside the axis.
     @objc open func renderAxisLine(context: CGContext)
     {
@@ -100,6 +105,7 @@ open class AxisRendererBase: Renderer
         if labelCount == 0 || range <= 0 || range.isInfinite
         {
             axis.entries = [Double]()
+            axis.majorEntries = []
             axis.centeredEntries = [Double]()
             return
         }
@@ -108,13 +114,11 @@ open class AxisRendererBase: Renderer
         let rawInterval = range / Double(labelCount)
         var interval = rawInterval.roundedToNextSignficant()
         
+        var majorInterval = interval / 2
+        
         // If granularity is enabled, then do not allow the interval to go below specified granularity.
         // This is used to avoid repeated values when rounding values for display.
-        if axis.granularityEnabled
-        {
-           interval = axis.granularity
-        }
-        
+              
         // Normalize interval
         let intervalMagnitude = pow(10.0, Double(Int(log10(interval)))).roundedToNextSignficant()
         let intervalSigDigit = Int(interval / intervalMagnitude)
@@ -125,7 +129,23 @@ open class AxisRendererBase: Renderer
             interval = floor(10.0 * intervalMagnitude) == 0.0 ? interval : floor(10.0 * intervalMagnitude)
         }
         
+        if axis.granularityEnabled
+        {
+           interval = axis.granularity
+        }
+        
+        if axis.majorGranularityEnabled
+        {
+            majorInterval = axis.majorGranularity
+        }
+        
+        if !axis.majorGranularityEnabled
+        {
+            majorInterval = interval / 2
+        }
+        
         var n = axis.centerAxisLabelsEnabled ? 1 : 0
+        let scale: Double = pow(10, 4);
         
         // force label count
         if axis.isForceLabelsEnabled
@@ -144,6 +164,13 @@ open class AxisRendererBase: Renderer
                 v += interval
             }
             
+            axis.majorEntries.removeAll(keepingCapacity: true)
+            axis.majorEntries.reserveCapacity(labelCount - 1)
+            
+            for i in 0..<labelCount - 1 {
+                axis.majorEntries[i] = (axis.entries[i + 1] - axis.entries[i]) / 2 + axis.entries[i];
+            }
+            
             n = labelCount
         }
         else
@@ -159,37 +186,20 @@ open class AxisRendererBase: Renderer
             
             let last = interval == 0.0 ? 0.0 : (floor(yMax / interval) * interval).nextUp
             
-            if interval != 0.0 && last != first
-            {
-                for _ in stride(from: first, through: last, by: interval)
-                {
-                    n += 1
-                }
+            func checkValue(_:Float)-> Bool {
+                return true
             }
-            else if last == first && n == 0
-            {
-                n = 1
+            axis.entries = calculateEntries(first: first , last: last, interval: interval, checkValue: checkValue)
+            
+            if(axis.drawMajorGridLinesEnabled) {
+                func checkValue(value:Float)-> Bool {
+                  //  NSLog("%f", value.truncatingRemainder(dividingBy: 2))
+                    return  (round((Double(value).truncatingRemainder (dividingBy: last + interval - (first - interval)) / interval) * scale) / scale).truncatingRemainder(dividingBy : Double(1)) != Double(0)
+                    
+                }
+                axis.majorEntries = calculateEntries(first: first - interval, last: last + interval, interval: majorInterval, checkValue: checkValue )
             }
 
-            // Ensure stops contains at least n elements.
-            axis.entries.removeAll(keepingCapacity: true)
-            axis.entries.reserveCapacity(labelCount)
-            
-            var f = first
-            var i = 0
-            while i < n
-            {
-                if f == 0.0
-                {
-                    // Fix for IEEE negative zero case (Where value == -0.0, and 0.0 == -0.0)
-                    f = 0.0
-                }
-                
-                axis.entries.append(Double(f))
-                
-                f += interval
-                i += 1
-            }
         }
         
         // set decimals
@@ -215,4 +225,21 @@ open class AxisRendererBase: Renderer
             }
         }
     }
+    
+    open func  calculateEntries(first: Double, last: Double, interval: Double, checkValue: (Float)-> Bool ) -> [Double ]{
+        var n = axis?.centerAxisLabelsEnabled == true ? 1 : 0;
+        
+        if interval != 0.0, last != first
+        {
+            stride(from: first, through: last, by: interval).forEach { _ in n += 1 }
+        }
+        
+        var entries =  [Double]()
+        let start = first, end = first + Double(n) * interval
+        // Fix for IEEE negative zero case (Where value == -0.0, and 0.0 == -0.0)
+        let values = stride(from: start, to: end, by: interval).map { $0 == 0.0 ? 0.0 : $0 }.filter{checkValue(Float($0))}
+        entries.append(contentsOf: values)
+        return entries
+    }
+
 }

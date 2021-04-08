@@ -319,6 +319,61 @@ open class XAxisRenderer: AxisRendererBase
         }
     }
     
+    open override func renderMajorGridLines(context: CGContext)
+    {
+        guard
+            let xAxis = self.axis as? XAxis,
+            let transformer = self.transformer
+            else { return }
+        
+        if !xAxis.isDrawMajorGridLinesEnabled || !xAxis.isEnabled
+        {
+            return
+        }
+        
+        context.saveGState()
+        defer { context.restoreGState() }
+        context.clip(to: self.majorGridClippingRect)
+        
+        context.setShouldAntialias(xAxis.majorGridAntialiasEnabled)
+        context.setStrokeColor(xAxis.majorGridColor.cgColor)
+        context.setLineWidth(xAxis.majorGridLineWidth)
+        context.setLineCap(xAxis.majorGridLineCap)
+        
+        if xAxis.majorGridLineDashLengths != nil
+        {
+            context.setLineDash(phase: xAxis.majorGridLineDashPhase, lengths: xAxis.majorGridLineDashLengths)
+        }
+        else
+        {
+            context.setLineDash(phase: 0.0, lengths: [])
+        }
+        
+        let valueToPixelMatrix = transformer.valueToPixelMatrix
+        
+        var position = CGPoint(x: 0.0, y: 0.0)
+        
+        let entries = xAxis.majorEntries
+        
+        for i in stride(from: 0, to: entries.count, by: 1)
+        {
+            position.x = CGFloat(entries[i])
+            position.y = position.x
+            position = position.applying(valueToPixelMatrix)
+            
+            drawMajorGridLine(context: context, x: position.x, y: position.y)
+        }
+    }
+    
+    @objc open var majorGridClippingRect: CGRect
+    {
+        var contentRect = viewPortHandler.contentRect
+        let dx = self.axis?.majorGridLineWidth ?? 0.0
+        contentRect.origin.x -= dx / 2.0
+        contentRect.size.width += dx
+        return contentRect
+    }
+    
     @objc open var gridClippingRect: CGRect
     {
         var contentRect = viewPortHandler.contentRect
@@ -326,6 +381,18 @@ open class XAxisRenderer: AxisRendererBase
         contentRect.origin.x -= dx / 2.0
         contentRect.size.width += dx
         return contentRect
+    }
+    
+    @objc open func drawMajorGridLine(context: CGContext, x: CGFloat, y: CGFloat)
+    {
+        if x >= viewPortHandler.offsetLeft
+            && x <= viewPortHandler.chartWidth
+        {
+            context.beginPath()
+            context.move(to: CGPoint(x: x, y: viewPortHandler.contentTop))
+            context.addLine(to: CGPoint(x: x, y: viewPortHandler.contentBottom))
+            context.strokePath()
+        }
     }
     
     @objc open func drawGridLine(context: CGContext, x: CGFloat, y: CGFloat)

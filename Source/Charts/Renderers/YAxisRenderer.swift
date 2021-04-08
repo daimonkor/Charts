@@ -158,6 +158,51 @@ open class YAxisRenderer: AxisRendererBase
         }
     }
     
+    open override func renderMajorGridLines(context: CGContext)
+    {
+        guard let
+            yAxis = self.axis as? YAxis
+            else { return }
+        
+        if !yAxis.isEnabled
+        {
+            return
+        }
+        
+        if yAxis.drawMajorGridLinesEnabled
+        {
+            let positions = majorTransformedPositions()
+            
+            context.saveGState()
+            defer { context.restoreGState() }
+            context.clip(to: self.majorGridClippingRect)
+            
+            context.setShouldAntialias(yAxis.majorGridAntialiasEnabled)
+            context.setStrokeColor(yAxis.majorGridColor.cgColor)
+            context.setLineWidth(yAxis.majorGridLineWidth)
+            context.setLineCap(yAxis.majorGridLineCap)
+            
+            if yAxis.majorGridLineDashLengths != nil
+            {
+                context.setLineDash(phase: yAxis.majorGridLineDashPhase, lengths: yAxis.majorGridLineDashLengths)
+                
+            }
+            else
+            {
+                context.setLineDash(phase: 0.0, lengths: [])
+            }
+            
+            // draw the grid
+            positions.forEach { drawMajorGridLine(context: context, position: $0) }
+        }
+
+        if yAxis.drawZeroLineEnabled
+        {
+            // draw zero line
+            drawZeroLine(context: context)
+        }
+    }
+    
     open override func renderGridLines(context: CGContext)
     {
         guard let
@@ -212,6 +257,25 @@ open class YAxisRenderer: AxisRendererBase
         return contentRect
     }
     
+    @objc open var majorGridClippingRect: CGRect
+    {
+        var contentRect = viewPortHandler.contentRect
+        let dy = self.axis?.majorGridLineWidth ?? 0.0
+        contentRect.origin.y -= dy / 2.0
+        contentRect.size.height += dy
+        return contentRect
+    }
+    
+    @objc open func drawMajorGridLine(
+        context: CGContext,
+        position: CGPoint)
+    {
+        context.beginPath()
+        context.move(to: CGPoint(x: viewPortHandler.contentLeft, y: position.y))
+        context.addLine(to: CGPoint(x: viewPortHandler.contentRight, y: position.y))
+        context.strokePath()
+    }
+        
     @objc open func drawGridLine(
         context: CGContext,
         position: CGPoint)
@@ -235,6 +299,28 @@ open class YAxisRenderer: AxisRendererBase
         let entries = yAxis.entries
         
         for i in stride(from: 0, to: yAxis.entryCount, by: 1)
+        {
+            positions.append(CGPoint(x: 0.0, y: entries[i]))
+        }
+
+        transformer.pointValuesToPixel(&positions)
+        
+        return positions
+    }
+    
+    @objc open func majorTransformedPositions() -> [CGPoint]
+    {
+        guard
+            let yAxis = self.axis as? YAxis,
+            let transformer = self.transformer
+            else { return [CGPoint]() }
+        
+        var positions = [CGPoint]()
+        positions.reserveCapacity(yAxis.majorEntries.count)
+        
+        let entries = yAxis.majorEntries
+        
+        for i in stride(from: 0, to: yAxis.majorEntries.count, by: 1)
         {
             positions.append(CGPoint(x: 0.0, y: entries[i]))
         }
